@@ -214,7 +214,7 @@ footer a { color: var(--haze); }
     </div>
     <div class="window" aria-hidden="true"><div class="reel"></div><div class="reel"></div></div>
   </label>
-  <button class="textbtn demo" id="demoBtn" type="button">No song handy? Use a free demo song</button>
+  <button class="textbtn demo" id="demoBtn" type="button">No song handy? Try a free sample song</button>
 
   <fieldset>
     <legend>Pick a mood</legend>
@@ -268,7 +268,7 @@ footer a { color: var(--haze); }
     <p><strong>Use it inside Claude Code.</strong> Install the plugin with <code>/plugin marketplace add nasimnayan/lofi-audio</code>, then ask Claude to make a lofi version of any song on your computer.</p>
   </div>
 
-  <footer>Made by <a href="https://nasimmahmudnayan.com">Nasim Mahmud Nayan</a>. Open source under the MIT licence. Demo song: "Monkeys At Typewriters" (CC0).</footer>
+  <footer>Made by <a href="https://nasimmahmudnayan.com">Nasim Mahmud Nayan</a>. Open source under the MIT licence.</footer>
 </div>
 
 <script>
@@ -337,7 +337,7 @@ $("demoBtn").addEventListener("click", async () => {
   try {
     const res = await fetch("demo.mp3");
     if (!res.ok) throw new Error();
-    await loadFile(new File([await res.blob()], "Monkeys At Typewriters (CC0).mp3", { type: "audio/mpeg" }));
+    await loadFile(new File([await res.blob()], "Free sample song.mp3", { type: "audio/mpeg" }));
   } catch { setStatus("The demo song couldn't be loaded. Check your connection and try again.", true); }
 });
 
