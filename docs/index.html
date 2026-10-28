@@ -103,12 +103,42 @@ h1 {
 .busy .reel { animation: spin 1.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.demo { display: block; margin: 1rem auto 0; }
-.textbtn {
-  background: none; border: 0; padding: .25rem; color: var(--haze);
-  font: inherit; text-decoration: underline; cursor: pointer;
+/* Old tape-deck key */
+.deckkey {
+  display: flex; align-items: center; gap: .9rem;
+  margin: 1.5rem auto 0;
+  padding: .85rem 1.4rem 1rem 1.1rem;
+  border: 0; border-radius: .55rem;
+  background: linear-gradient(#F1E6CC, #D8C59D);
+  color: #3B2F1E;
+  text-align: left;
+  font: 700 1.05rem/1.25 "Recursive", Arial, sans-serif;
+  font-variation-settings: var(--casual);
+  cursor: pointer;
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.75),
+    inset 0 -3px 0 rgba(0,0,0,.15),
+    0 6px 0 #8A7650,
+    0 12px 20px rgba(0,0,0,.4);
+  transition: transform .08s ease, box-shadow .08s ease;
 }
-.textbtn:hover { color: var(--mist); }
+.deckkey small { display: block; margin-top: .15rem; font-weight: 400; font-size: .82rem; color: #6B5A3C; font-variation-settings: "CASL" 0; }
+.deckkey .play {
+  flex: none; width: 2.4rem; height: 2.4rem; border-radius: 50%;
+  background: #3B2F1E;
+  box-shadow: inset 0 0 0 3px #C9B488;
+  position: relative;
+}
+.deckkey .play::after {
+  content: ""; position: absolute; left: 54%; top: 50%; transform: translate(-50%, -50%);
+  border-style: solid; border-width: .45rem 0 .45rem .75rem;
+  border-color: transparent transparent transparent var(--lamp);
+}
+.deckkey:hover { filter: brightness(1.04); }
+.deckkey:active, .deckkey[aria-busy=true] {
+  transform: translateY(5px);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(0,0,0,.15), 0 1px 0 #8A7650, 0 4px 8px rgba(0,0,0,.35);
+}
 
 /* Controls */
 fieldset { border: 0; padding: 0; margin: 2.75rem 0 0; }
@@ -152,8 +182,32 @@ details .sliders { color: var(--mist); }
 button:focus-visible, a:focus-visible, summary:focus-visible, input[type=range]:focus-visible {
   outline: 3px solid var(--lamp); outline-offset: 3px;
 }
-.status { min-height: 1.6em; margin: .9rem 0 0; color: var(--haze); text-align: center; }
+.hint { margin: .6rem 0 0; color: var(--haze); text-align: center; font-size: .9rem; }
+.status { min-height: 1.6em; margin: .9rem 0 0; color: var(--mist); text-align: center; font-weight: 600; }
 .status.error { color: var(--rose); }
+
+/* Progress panel */
+.progress { margin-top: 1.25rem; padding: 1.1rem 1.2rem; border-radius: .9rem; background: var(--dusk); box-shadow: inset 0 0 0 2px var(--dusk-2); }
+.track-bar { height: .9rem; border-radius: 999px; background: var(--night); overflow: hidden; }
+.track-bar span {
+  display: block; height: 100%; width: 0; border-radius: inherit;
+  background: linear-gradient(90deg, var(--lamp), var(--rose));
+}
+.progress.working .track-bar span {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255,255,255,.28) 0 10px, transparent 10px 20px),
+    linear-gradient(90deg, var(--lamp), var(--rose));
+  background-size: 28px 28px, 100% 100%;
+  animation: stripes .8s linear infinite;
+}
+@keyframes stripes { to { background-position: 28px 0, 0 0; } }
+.steps { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; margin: .9rem 0 0; padding: 0; font-size: .95rem; color: var(--haze); }
+.steps li::before { content: "○"; margin-right: .4rem; }
+.steps li.active { color: var(--mist); font-weight: 700; }
+.steps li.active::before { content: "◉"; color: var(--lamp); }
+.steps li.done { color: var(--mist); }
+.steps li.done::before { content: "✓"; color: var(--rose); }
+.elapsed { margin: .6rem 0 0; font-size: .85rem; color: var(--haze); font-variant-numeric: tabular-nums; }
 
 /* Result */
 .result { margin-top: 2.5rem; display: none; }
@@ -191,7 +245,8 @@ footer a { color: var(--haze); }
   h1 { margin-top: 2rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .busy .reel { animation: none; }
+  .busy .reel, .progress.working .track-bar span { animation: none; }
+  .deckkey { transition: none; }
   .cassette { transition: none; }
 }
 </style>
@@ -214,7 +269,10 @@ footer a { color: var(--haze); }
     </div>
     <div class="window" aria-hidden="true"><div class="reel"></div><div class="reel"></div></div>
   </label>
-  <button class="textbtn demo" id="demoBtn" type="button">No song handy? Try a free sample song</button>
+  <button class="deckkey" id="demoBtn" type="button">
+    <span class="play" aria-hidden="true"></span>
+    <span>Try it with a sample song<small>A free song. Makes a lofi version right away.</small></span>
+  </button>
 
   <fieldset>
     <legend>Pick a mood</legend>
@@ -240,7 +298,12 @@ footer a { color: var(--haze); }
   </details>
 
   <button class="go" id="go" type="button">Make it lofi</button>
-  <p class="status" style="margin-top:.5rem">A full song takes about a minute. Keep this tab open.</p>
+  <p class="hint" id="hint">A full song takes about a minute. Keep this tab open.</p>
+  <div class="progress" id="progress" hidden>
+    <div class="track-bar"><span id="bar"></span></div>
+    <ol class="steps" id="steps"></ol>
+    <p class="elapsed" id="elapsed"></p>
+  </div>
   <p class="status" id="status" role="status" aria-live="polite"></p>
 
   <section class="result" id="result" aria-label="Result">
@@ -334,12 +397,47 @@ const cassette = $("cassette");
 ["dragleave", "drop"].forEach((t) => cassette.addEventListener(t, () => cassette.classList.remove("dragging")));
 cassette.addEventListener("drop", (e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
 $("demoBtn").addEventListener("click", async () => {
+  if ($("go").disabled) return;
+  $("demoBtn").setAttribute("aria-busy", "true");
   try {
     const res = await fetch("demo.mp3");
     if (!res.ok) throw new Error();
     await loadFile(new File([await res.blob()], "Free sample song.mp3", { type: "audio/mpeg" }));
-  } catch { setStatus("The demo song couldn't be loaded. Check your connection and try again.", true); }
+  } catch { setStatus("The sample song couldn't be loaded. Check your connection and try again.", true); }
+  $("demoBtn").removeAttribute("aria-busy");
+  if (song) {
+    $("go").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+    run();
+  }
 });
+
+/* ---------- Progress ---------- */
+let progressTimer = null;
+function startProgress(names) {
+  $("steps").innerHTML = names.map((n) => `<li>${n}</li>`).join("");
+  $("progress").hidden = false; $("hint").hidden = true;
+  const t0 = performance.now();
+  $("elapsed").textContent = "0:00 elapsed";
+  clearInterval(progressTimer);
+  progressTimer = setInterval(() => { $("elapsed").textContent = `${fmt((performance.now() - t0) / 1000)} elapsed`; }, 500);
+}
+function progress(pct, busy, secs = 0.3) {
+  const bar = $("bar");
+  bar.style.transition = `width ${secs}s ease-out`;
+  bar.style.width = pct + "%";
+  $("progress").classList.toggle("working", busy);
+  $("go").textContent = `Working… ${Math.round(pct)}%`;
+}
+function step(i, pct, busy = true, secs = 0.3) {
+  [...$("steps").children].forEach((li, k) => { li.className = k < i ? "done" : k === i ? "active" : ""; });
+  progress(pct, busy, secs);
+}
+function endProgress(ok) {
+  clearInterval(progressTimer);
+  if (ok) { [...$("steps").children].forEach((li) => { li.className = "done"; }); progress(100, false); }
+  else $("progress").classList.remove("working");
+  $("go").textContent = "Make it lofi";
+}
 
 /* ---------- DSP ---------- */
 function settings() {
@@ -471,13 +569,17 @@ async function renderRain(n) {
 /* ---------- Encoding ---------- */
 function toInt16(f) { const out = new Int16Array(f.length); for (let i = 0; i < f.length; i++) { const s = Math.max(-1, Math.min(1, f[i])); out[i] = s < 0 ? s * 0x8000 : s * 0x7fff; } return out; }
 
-async function encodeMp3(L, R) {
+async function encodeMp3(L, R, onProgress) {
   if (!window.lamejs) return null;
   const enc = new lamejs.Mp3Encoder(2, SR, 192), l = toInt16(L), r = toInt16(R), block = 1152, parts = [];
   for (let i = 0; i < l.length; i += block) {
     const out = enc.encodeBuffer(l.subarray(i, i + block), r.subarray(i, i + block));
     if (out.length) parts.push(new Uint8Array(out));
-    if (i % (block * 400) === 0) { setStatus(`Saving as MP3… ${Math.round((i / l.length) * 100)}%`); await tick(); }
+    if (i % (block * 200) === 0) {
+      setStatus(`Saving as MP3… ${Math.round((i / l.length) * 100)}%`);
+      if (onProgress) onProgress(i / l.length);
+      await tick();
+    }
   }
   const end = enc.flush(); if (end.length) parts.push(new Uint8Array(end));
   return new Blob(parts, { type: "audio/mpeg" });
@@ -496,26 +598,35 @@ function encodeWav(L, R) {
 }
 
 /* ---------- Main ---------- */
-$("go").addEventListener("click", async () => {
+async function run() {
+  if ($("go").disabled) return;
   if (!song) { setStatus("Choose a song first: drop it on the cassette or click it.", true); return; }
   const p = settings(), stem = song.file.name.replace(/\.[^.]+$/, ""), tag = mood();
+  const names = ["Slowing down + reverb"];
+  if (p.vinyl > 0) names.push("Vinyl crackle");
+  if (p.rain > 0) names.push("Rain");
+  names.push("Saving MP3");
+  let s = 0;
   $("go").disabled = true; cassette.classList.add("busy"); $("result").classList.remove("show");
+  startProgress(names);
   try {
-    setStatus("Slowing it down and adding reverb…"); await tick();
+    setStatus("Slowing it down and adding reverb…");
+    step(s, 45, true, Math.max(2, song.buffer.duration * 0.06)); await tick();
     const music = await renderMusic(song.buffer, p);
     const n = music[0].length, musicPeak = peakOf(music) || 1;
     if (p.vinyl > 0) {
-      setStatus("Adding vinyl crackle…"); await tick();
+      setStatus("Adding vinyl crackle…"); step(++s, 52); await tick();
       const v = await renderVinyl(n), k = p.vinyl * musicPeak * 0.5;
       for (let ch = 0; ch < 2; ch++) for (let i = 0; i < n; i++) music[ch][i] += v[ch][i] * k;
     }
     if (p.rain > 0) {
-      setStatus("Adding rain…"); await tick();
+      setStatus("Adding rain…"); step(++s, 58); await tick();
       const rn = await renderRain(n), k = p.rain * musicPeak * 0.5;
       for (let ch = 0; ch < 2; ch++) for (let i = 0; i < n; i++) music[ch][i] += rn[ch][i] * k;
     }
     normalise(music, Math.pow(10, -1 / 20));
-    const mp3 = await encodeMp3(music[0], music[1]);
+    step(++s, 60, false);
+    const mp3 = await encodeMp3(music[0], music[1], (f) => progress(60 + f * 38, false));
     const wav = encodeWav(music[0], music[1]);
     urls.forEach(URL.revokeObjectURL);
     const beforeUrl = URL.createObjectURL(song.file), wavUrl = URL.createObjectURL(wav);
@@ -528,15 +639,18 @@ $("go").addEventListener("click", async () => {
     if (mp3) { $("dlMp3").href = afterUrl; $("dlMp3").download = `${stem}_${tag}.mp3`; }
     $("dlWav").href = wavUrl; $("dlWav").download = `${stem}_${tag}.wav`;
     $("result").classList.add("show");
-    setStatus(`Done. ${fmt(song.buffer.duration)} became ${fmt(n / SR)}.`);
+    endProgress(true);
+    setStatus(`Done! ${fmt(song.buffer.duration)} became ${fmt(n / SR)}. Your version is ready below.`);
     $("result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
   } catch (err) {
     console.error(err);
+    endProgress(false);
     setStatus("Something went wrong while processing. Try a shorter song or reload the page.", true);
   } finally {
     $("go").disabled = false; cassette.classList.remove("busy");
   }
-});
+}
+$("go").addEventListener("click", run);
 </script>
 </body>
 </html>
