@@ -1,0 +1,4 @@
+# Python 3.10+. Minimums are the oldest versions the test suite has passed on.
+pedalboard>=0.9.14,<1
+numpy>=2.1
+scipy>=1.14

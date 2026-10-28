@@ -1,0 +1,14 @@
+{
+  "name": "lofi-audio",
+  "version": "1.0.0",
+  "description": "Turn any song into a Slowed + Reverb, Lofi or Dreamy version, with optional vinyl crackle, rain or your own ambience loop.",
+  "author": {
+    "name": "nasimnayan",
+    "email": "smnoyan670@gmail.com",
+    "url": "https://github.com/nasimnayan"
+  },
+  "homepage": "https://github.com/nasimnayan/lofi-audio",
+  "repository": "https://github.com/nasimnayan/lofi-audio",
+  "license": "MIT",
+  "keywords": ["audio", "lofi", "slowed", "reverb", "music"]
+}

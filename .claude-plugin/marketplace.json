@@ -1,0 +1,16 @@
+{
+  "name": "lofi-audio",
+  "description": "Slowed + Reverb, Lofi and Dreamy audio effects for Claude Code.",
+  "owner": {
+    "name": "nasimnayan",
+    "email": "smnoyan670@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "lofi-audio",
+      "source": "./",
+      "description": "Turn any song into a Slowed + Reverb, Lofi or Dreamy version.",
+      "version": "1.0.0"
+    }
+  ]
+}
