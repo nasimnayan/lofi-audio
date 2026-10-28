@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lofi Audio</title>
+<meta name="description" content="Turn any song into a slowed + reverb, lofi or dreamy version, right in your browser. Your song never leaves your device.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CASL@-15..0,300..900,0..1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js" defer></script>
+<style>
+:root {
+  --night: #1F1A38;
+  --dusk: #2C2650;
+  --dusk-2: #3A3366;
+  --mist: #D9D3F0;
+  --haze: #9C94C4;
+  --lamp: #F4B860;
+  --rose: #EE8FA8;
+  --casual: "CASL" 1;
+}
+* { box-sizing: border-box; }
+html { background: var(--night); }
+body {
+  margin: 0;
+  color: var(--mist);
+  background:
+    radial-gradient(60rem 30rem at 85% -10%, rgba(244,184,96,.10), transparent 60%),
+    var(--night);
+  font: 400 1.0625rem/1.6 "Recursive", Arial, sans-serif;
+  font-variation-settings: "CASL" 0;
+  min-height: 100vh;
+}
+.wrap { max-width: 44rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+
+header { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.brand { font-weight: 800; font-variation-settings: var(--casual); font-size: 1.125rem; }
+header a { color: var(--haze); }
+
+h1 {
+  margin: 3rem 0 .75rem;
+  font-size: clamp(2.4rem, 7vw, 3.75rem);
+  line-height: 1.05;
+  font-weight: 850;
+  font-variation-settings: var(--casual), "slnt" -8;
+  letter-spacing: -.01em;
+}
+.lede { margin: 0 0 2.5rem; color: var(--haze); max-width: 34rem; }
+
+/* Cassette drop zone */
+.cassette {
+  position: relative;
+  display: block;
+  aspect-ratio: 1.6;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 7%;
+  border-radius: 1.25rem;
+  background: linear-gradient(160deg, var(--dusk-2), var(--dusk));
+  box-shadow: inset 0 0 0 2px rgba(217,211,240,.12), 0 1.5rem 3rem rgba(0,0,0,.35);
+  cursor: pointer;
+  transition: transform .2s ease;
+}
+.cassette:hover { transform: translateY(-2px); }
+.cassette.dragging { box-shadow: inset 0 0 0 3px var(--lamp), 0 1.5rem 3rem rgba(0,0,0,.35); }
+.cassette:focus-within { outline: 3px solid var(--lamp); outline-offset: 4px; }
+.cassette input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.label {
+  height: 58%;
+  border-radius: .5rem;
+  background: var(--mist);
+  color: var(--night);
+  padding: 4% 5%;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background-image: repeating-linear-gradient(transparent 0 1.7rem, rgba(31,26,56,.12) 1.7rem calc(1.7rem + 1px));
+}
+.label strong {
+  font-variation-settings: var(--casual);
+  font-weight: 700;
+  font-size: clamp(1rem, 3.6vw, 1.4rem);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.label small { color: #5a5480; font-size: .85rem; }
+.window {
+  position: absolute; left: 22%; right: 22%; bottom: 13%;
+  height: 24%;
+  border-radius: 999px;
+  background: var(--night);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 6%;
+}
+.reel {
+  width: 2.6rem; height: 2.6rem; max-width: 30%; aspect-ratio: 1;
+  border-radius: 50%;
+  border: .45rem solid var(--mist);
+  background:
+    conic-gradient(from 0deg, var(--mist) 0 8%, transparent 8% 33%, var(--mist) 33% 41%, transparent 41% 66%, var(--mist) 66% 74%, transparent 74%);
+  -webkit-mask: radial-gradient(circle, transparent 28%, #000 29%);
+          mask: radial-gradient(circle, transparent 28%, #000 29%);
+}
+.busy .reel { animation: spin 1.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.demo { display: block; margin: 1rem auto 0; }
+.textbtn {
+  background: none; border: 0; padding: .25rem; color: var(--haze);
+  font: inherit; text-decoration: underline; cursor: pointer;
+}
+.textbtn:hover { color: var(--mist); }
+
+/* Controls */
+fieldset { border: 0; padding: 0; margin: 2.75rem 0 0; }
+legend { font-weight: 700; margin-bottom: .75rem; padding: 0; }
+.moods { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+.moods label { position: relative; }
+.moods input { position: absolute; opacity: 0; }
+.moods span {
+  display: block; height: 100%;
+  padding: .8rem .9rem;
+  border-radius: .75rem;
+  background: var(--dusk);
+  cursor: pointer;
+  line-height: 1.35;
+}
+.moods b { display: block; font-variation-settings: var(--casual); }
+.moods em { font-style: normal; font-size: .85rem; color: var(--haze); }
+.moods input:checked + span { background: var(--mist); color: var(--night); }
+.moods input:checked + span em { color: #5a5480; }
+.moods input:focus-visible + span { outline: 3px solid var(--lamp); outline-offset: 2px; }
+
+.sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem 2rem; margin-top: 1.5rem; }
+.slider label { display: flex; justify-content: space-between; font-size: .95rem; }
+.slider output { color: var(--haze); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--lamp); }
+details { margin-top: 1.25rem; color: var(--haze); }
+details summary { cursor: pointer; }
+details .sliders { color: var(--mist); }
+
+.go {
+  display: block; width: 100%;
+  margin-top: 2.25rem; padding: 1rem;
+  border: 0; border-radius: .9rem;
+  background: var(--lamp); color: var(--night);
+  font: 800 1.15rem "Recursive", Arial, sans-serif;
+  font-variation-settings: var(--casual);
+  cursor: pointer;
+}
+.go:hover { filter: brightness(1.06); }
+.go:disabled { opacity: .55; cursor: progress; }
+button:focus-visible, a:focus-visible, summary:focus-visible, input[type=range]:focus-visible {
+  outline: 3px solid var(--lamp); outline-offset: 3px;
+}
+.status { min-height: 1.6em; margin: .9rem 0 0; color: var(--haze); text-align: center; }
+.status.error { color: var(--rose); }
+
+/* Result */
+.result { margin-top: 2.5rem; display: none; }
+.result.show { display: block; }
+.result h2 { font-variation-settings: var(--casual); font-size: 1.5rem; margin: 0 0 1rem; }
+.track { padding: .9rem 1rem 1rem; border-radius: .9rem; background: var(--dusk); margin-bottom: .75rem; }
+.track.after { box-shadow: inset 4px 0 0 var(--rose); }
+.track p { margin: 0 0 .5rem; font-size: .95rem; }
+.track p span { color: var(--haze); }
+audio { width: 100%; }
+.downloads { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: 1rem; }
+.downloads a {
+  padding: .65rem 1.1rem; border-radius: .7rem;
+  background: var(--rose); color: var(--night);
+  font-weight: 700; text-decoration: none;
+}
+.downloads a.secondary { background: transparent; color: var(--mist); box-shadow: inset 0 0 0 2px var(--dusk-2); }
+
+.inspo { margin-top: 4rem; }
+.inspo h2 { font-variation-settings: var(--casual); font-size: 1.5rem; line-height: 1.25; margin: 0 0 .5rem; }
+.inspo p { color: var(--haze); margin: 0 0 1rem; }
+.video { position: relative; aspect-ratio: 16 / 9; border-radius: .9rem; overflow: hidden; background: var(--dusk); }
+.video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.inspo .credit { font-size: .85rem; margin-top: .75rem; }
+.notes { margin-top: 3.5rem; color: var(--haze); font-size: .95rem; }
+.notes p { margin: 0 0 1rem; }
+.notes strong { color: var(--mist); font-weight: 600; }
+code { font-family: "Recursive", monospace; font-variation-settings: "MONO" 1; background: var(--dusk); padding: .1rem .35rem; border-radius: .3rem; font-size: .9em; }
+footer { margin-top: 3rem; color: var(--haze); font-size: .9rem; }
+footer a { color: var(--haze); }
+
+@media (max-width: 34rem) {
+  .moods { grid-template-columns: 1fr; }
+  .sliders { grid-template-columns: 1fr; }
+  h1 { margin-top: 2rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .busy .reel { animation: none; }
+  .cassette { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="brand">Lofi Audio</span>
+    <a href="https://github.com/nasimnayan/lofi-audio">Source on GitHub</a>
+  </header>
+
+  <h1>Make any song sound like 2&nbsp;am.</h1>
+  <p class="lede">Slow it down, add reverb, vinyl crackle or rain. It all happens in your browser, so your song never leaves your device.</p>
+
+  <label class="cassette" id="cassette">
+    <input type="file" id="file" accept="audio/*,.mp3,.wav,.flac,.ogg,.m4a">
+    <div class="label">
+      <strong id="songName">Drop a song here, or click to choose one</strong>
+      <small id="songInfo">MP3, WAV, FLAC or M4A · up to 10 minutes</small>
+    </div>
+    <div class="window" aria-hidden="true"><div class="reel"></div><div class="reel"></div></div>
+  </label>
+  <button class="textbtn demo" id="demoBtn" type="button">No song handy? Use a free demo song</button>
+
+  <fieldset>
+    <legend>Pick a mood</legend>
+    <div class="moods">
+      <label><input type="radio" name="mood" value="slowed-reverb" checked><span><b>Slowed + reverb</b><em>The classic. Deeper, slower, big room.</em></span></label>
+      <label><input type="radio" name="mood" value="lofi"><span><b>Lofi</b><em>Warm and muffled, tape wobble, vinyl.</em></span></label>
+      <label><input type="radio" name="mood" value="dreamy"><span><b>Dreamy</b><em>Very slow, huge echoing space.</em></span></label>
+    </div>
+  </fieldset>
+
+  <div class="sliders">
+    <div class="slider"><label for="speed">Speed <output id="speedOut"></output></label><input type="range" id="speed" min="0.5" max="1" step="0.01"></div>
+    <div class="slider"><label for="wet">Reverb <output id="wetOut"></output></label><input type="range" id="wet" min="0" max="1" step="0.01"></div>
+    <div class="slider"><label for="vinyl">Vinyl crackle <output id="vinylOut"></output></label><input type="range" id="vinyl" min="0" max="0.6" step="0.01"></div>
+    <div class="slider"><label for="rain">Rain <output id="rainOut"></output></label><input type="range" id="rain" min="0" max="0.6" step="0.01"></div>
+  </div>
+  <details>
+    <summary>More options</summary>
+    <div class="sliders">
+      <div class="slider"><label for="room">Room size <output id="roomOut"></output></label><input type="range" id="room" min="0" max="1" step="0.01"></div>
+      <div class="slider"><label for="warmth">Warmth <output id="warmthOut"></output></label><input type="range" id="warmth" min="0" max="1" step="0.01"></div>
+    </div>
+  </details>
+
+  <button class="go" id="go" type="button">Make it lofi</button>
+  <p class="status" style="margin-top:.5rem">A full song takes about a minute. Keep this tab open.</p>
+  <p class="status" id="status" role="status" aria-live="polite"></p>
+
+  <section class="result" id="result" aria-label="Result">
+    <h2>Before and after</h2>
+    <div class="track"><p>Original <span id="beforeLen"></span></p><audio id="before" controls preload="metadata"></audio></div>
+    <div class="track after"><p>Your version <span id="afterLen"></span></p><audio id="after" controls preload="metadata"></audio></div>
+    <div class="downloads">
+      <a id="dlMp3" download>Download MP3</a>
+      <a id="dlWav" class="secondary" download>Download WAV</a>
+    </div>
+  </section>
+
+  <section class="inspo" aria-labelledby="inspoTitle">
+    <h2 id="inspoTitle">Love the slowed version of Agar Tum Saath Ho?</h2>
+    <p>Songs like this one are what slowed + reverb was made for. Listen to the original below, then make your own version of the songs you love.</p>
+    <div class="video">
+      <iframe src="https://www.youtube-nocookie.com/embed/xRb8hxwN5zc" title="Agar Tum Saath Ho, official video by T-Series" loading="lazy"
+        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </div>
+    <p class="credit">"Agar Tum Saath Ho" from the film <em>Tamasha</em> (2015). Sung by Alka Yagnik and Arijit Singh, music by A. R. Rahman, lyrics by Irshad Kamil. Official video © T-Series, embedded from YouTube. This site is not affiliated with T-Series.</p>
+  </section>
+
+  <div class="notes">
+    <p><strong>Only use music you have the rights to.</strong> Slowed versions are for personal listening. A remix of someone else's song still belongs to them, so ask the rights holder before you publish it.</p>
+    <p><strong>Use it inside Claude Code.</strong> Install the plugin with <code>/plugin marketplace add nasimnayan/lofi-audio</code>, then ask Claude to make a lofi version of any song on your computer.</p>
+  </div>
+
+  <footer>Made by <a href="https://nasimmahmudnayan.com">Nasim Mahmud Nayan</a>. Open source under the MIT licence. Demo song: "Monkeys At Typewriters" (CC0).</footer>
+</div>
+
+<script>
+"use strict";
+const SR = 44100;
+const MAX_MINUTES = 10;
+const PRESETS = {
+  "slowed-reverb": { speed: .8,  room: .75, damping: .5,  wet: .33, dry: .7, tail: 4, lowpass: 0,    highpass: 0,  bits: 0,  wobble: 0,   compress: false, vinyl: 0,   rain: 0 },
+  "lofi":          { speed: .85, room: .55, damping: .7,  wet: .22, dry: .8, tail: 3, lowpass: 4500, highpass: 90, bits: 12, wobble: .35, compress: true,  vinyl: .18, rain: 0 },
+  "dreamy":        { speed: .78, room: .95, damping: .35, wet: .45, dry: .6, tail: 6, lowpass: 9000, highpass: 0,  bits: 0,  wobble: 0,   compress: false, vinyl: 0,   rain: 0 },
+};
+const $ = (id) => document.getElementById(id);
+const SLIDERS = ["speed", "wet", "vinyl", "rain", "room", "warmth"];
+let song = null;          // { file, buffer }
+let urls = [];
+
+/* ---------- UI ---------- */
+function mood() { return document.querySelector("input[name=mood]:checked").value; }
+function warmthFromLowpass(hz) { return hz ? Math.min(1, Math.max(0, (12000 - hz) / 9000)) : 0; }
+function lowpassFromWarmth(w) { return w < 0.02 ? 0 : 12000 - w * 9000; }
+function showValues() {
+  $("speedOut").textContent = Number($("speed").value).toFixed(2) + "×";
+  for (const id of ["wet", "vinyl", "rain", "room", "warmth"]) $(id + "Out").textContent = Math.round($(id).value * 100) + "%";
+}
+function applyPreset() {
+  const p = PRESETS[mood()];
+  $("speed").value = p.speed; $("wet").value = p.wet; $("vinyl").value = p.vinyl;
+  $("rain").value = p.rain; $("room").value = p.room; $("warmth").value = warmthFromLowpass(p.lowpass);
+  showValues();
+}
+function setStatus(text, isError = false) { $("status").textContent = text; $("status").classList.toggle("error", isError); }
+function fmt(sec) { const t = Math.round(sec), m = Math.floor(t / 60), s = t % 60; return `${m}:${String(s).padStart(2, "0")}`; }
+const tick = () => new Promise((r) => setTimeout(r, 0));
+
+document.querySelectorAll("input[name=mood]").forEach((r) => r.addEventListener("change", applyPreset));
+SLIDERS.forEach((id) => $(id).addEventListener("input", showValues));
+applyPreset();
+
+async function loadFile(file) {
+  $("songName").textContent = file.name;
+  $("songInfo").textContent = "Reading…";
+  setStatus("");
+  try {
+    const ctx = new OfflineAudioContext(2, 1, SR);
+    const buffer = await ctx.decodeAudioData(await file.arrayBuffer());
+    if (buffer.duration > MAX_MINUTES * 60) {
+      song = null;
+      $("songInfo").textContent = `${fmt(buffer.duration)} long`;
+      setStatus(`This song is ${fmt(buffer.duration)} long. Choose one under ${MAX_MINUTES} minutes.`, true);
+      return;
+    }
+    song = { file, buffer };
+    $("songInfo").textContent = `${fmt(buffer.duration)} · ready`;
+  } catch {
+    song = null;
+    $("songInfo").textContent = "Couldn't read this file";
+    setStatus("This file couldn't be read as audio. Try an MP3, WAV or FLAC file.", true);
+  }
+}
+$("file").addEventListener("change", (e) => e.target.files[0] && loadFile(e.target.files[0]));
+const cassette = $("cassette");
+["dragenter", "dragover"].forEach((t) => cassette.addEventListener(t, (e) => { e.preventDefault(); cassette.classList.add("dragging"); }));
+["dragleave", "drop"].forEach((t) => cassette.addEventListener(t, () => cassette.classList.remove("dragging")));
+cassette.addEventListener("drop", (e) => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+$("demoBtn").addEventListener("click", async () => {
+  try {
+    const res = await fetch("demo.mp3");
+    if (!res.ok) throw new Error();
+    await loadFile(new File([await res.blob()], "Monkeys At Typewriters (CC0).mp3", { type: "audio/mpeg" }));
+  } catch { setStatus("The demo song couldn't be loaded. Check your connection and try again.", true); }
+});
+
+/* ---------- DSP ---------- */
+function settings() {
+  const p = { ...PRESETS[mood()] };
+  p.speed = +$("speed").value; p.wet = +$("wet").value; p.vinyl = +$("vinyl").value;
+  p.rain = +$("rain").value; p.room = +$("room").value; p.lowpass = lowpassFromWarmth(+$("warmth").value);
+  return p;
+}
+
+function makeImpulse(ctx, room, damping) {
+  const secs = 0.4 + room * 4.6, n = Math.floor(SR * secs), decay = 6.9 / secs;
+  const ir = ctx.createBuffer(2, n, SR);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    let y = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / SR;
+      const coef = Math.min(0.97, damping * 0.9 * (t / secs) + 0.05); // tail gets darker over time
+      y = y * coef + (Math.random() * 2 - 1) * (1 - coef);
+      d[i] = y * Math.exp(-decay * t);
+    }
+  }
+  return ir;
+}
+
+function crushCurve(bits) {
+  const steps = Math.pow(2, bits - 1), n = 65536, curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = (i / (n - 1)) * 2 - 1; curve[i] = Math.round(x * steps) / steps; }
+  return curve;
+}
+
+async function renderMusic(buffer, p) {
+  const length = Math.ceil(buffer.length / p.speed + p.tail * SR);
+  const ctx = new OfflineAudioContext(2, length, SR);
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  src.playbackRate.value = p.speed; // vinyl style: tempo and pitch drop together
+  let node = src;
+  const chain = (n) => { node.connect(n); node = n; return n; };
+  if (p.highpass) { const f = chain(ctx.createBiquadFilter()); f.type = "highpass"; f.frequency.value = p.highpass; }
+  if (p.lowpass) { const f = chain(ctx.createBiquadFilter()); f.type = "lowpass"; f.frequency.value = p.lowpass; }
+  if (p.bits) { const w = chain(ctx.createWaveShaper()); w.curve = crushCurve(p.bits); }
+  if (p.wobble > 0) {
+    const mix = 0.5 * p.wobble, out = ctx.createGain(), dry = ctx.createGain(), wet = ctx.createGain();
+    const delay = ctx.createDelay(0.05), lfo = ctx.createOscillator(), depth = ctx.createGain();
+    delay.delayTime.value = 0.007; lfo.frequency.value = 0.6; depth.gain.value = 0.002 * p.wobble;
+    lfo.connect(depth).connect(delay.delayTime); lfo.start();
+    dry.gain.value = 1 - mix; wet.gain.value = mix;
+    node.connect(dry).connect(out); node.connect(delay).connect(wet).connect(out);
+    node = out;
+  }
+  if (p.compress) {
+    const c = chain(ctx.createDynamicsCompressor());
+    c.threshold.value = -18; c.ratio.value = 3; c.attack.value = 0.01; c.release.value = 0.15; c.knee.value = 6;
+  }
+  const dry = ctx.createGain(), wet = ctx.createGain(), verb = ctx.createConvolver();
+  dry.gain.value = p.dry; wet.gain.value = p.wet;
+  verb.buffer = makeImpulse(ctx, p.room, p.damping);
+  node.connect(dry).connect(ctx.destination);
+  node.connect(verb).connect(wet).connect(ctx.destination);
+  src.start();
+  return trimSilence(await ctx.startRendering());
+}
+
+function trimSilence(buf) {
+  const thr = Math.pow(10, -70 / 20), a = buf.getChannelData(0), b = buf.getChannelData(1);
+  let end = buf.length - 1;
+  while (end > 0 && Math.abs(a[end]) < thr && Math.abs(b[end]) < thr) end--;
+  end = Math.min(buf.length, end + Math.floor(0.25 * SR));
+  return [a.slice(0, end), b.slice(0, end)];
+}
+
+function peakOf(chs) { let m = 0; for (const c of chs) for (let i = 0; i < c.length; i++) { const v = Math.abs(c[i]); if (v > m) m = v; } return m; }
+function normalise(chs, target = 1) { const m = peakOf(chs); if (m > 0) { const k = target / m; for (const c of chs) for (let i = 0; i < c.length; i++) c[i] *= k; } return chs; }
+function band(ctx, lo, hi) { const f = ctx.createBiquadFilter(); f.type = "bandpass"; const c = Math.sqrt(lo * hi); f.frequency.value = c; f.Q.value = c / (hi - lo); return f; }
+function impulses(ctx, n, perSec, minAmp, maxAmp, bothChannels, signed) {
+  const buf = ctx.createBuffer(2, n, SR), L = buf.getChannelData(0), R = buf.getChannelData(1);
+  const count = Math.max(1, Math.floor((n / SR) * perSec));
+  for (let k = 0; k < count; k++) {
+    const i = Math.floor(Math.random() * n);
+    let v = minAmp + Math.random() * (maxAmp - minAmp);
+    if (signed && Math.random() < 0.5) v = -v;
+    if (bothChannels) { L[i] += v; R[i] += v; } else (Math.random() < 0.5 ? L : R)[i] += v;
+  }
+  return buf;
+}
+function play(ctx, buffer) { const s = ctx.createBufferSource(); s.buffer = buffer; s.start(); return s; }
+
+async function renderVinyl(n) {
+  const ctx = new OfflineAudioContext(2, n, SR);
+  const noise = ctx.createBuffer(2, n, SR);
+  for (let ch = 0; ch < 2; ch++) { const d = noise.getChannelData(ch); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; }
+  const hissGain = ctx.createGain(); hissGain.gain.value = 0.05;
+  play(ctx, noise).connect(band(ctx, 800, 6000)).connect(hissGain).connect(ctx.destination);
+  const clicks = impulses(ctx, n, 25, 0.1, 0.6, false, true);
+  const pops = impulses(ctx, n, 0.6, 0.6, 1.0, true, true);
+  const crackleBand = band(ctx, 1000, 9000);
+  play(ctx, clicks).connect(crackleBand); play(ctx, pops).connect(crackleBand);
+  crackleBand.connect(ctx.destination);
+  const r = await ctx.startRendering();
+  return normalise([r.getChannelData(0), r.getChannelData(1)]);
+}
+
+async function renderRain(n) {
+  const ctx = new OfflineAudioContext(2, n, SR);
+  const pink = ctx.createBuffer(2, n, SR);
+  // Pink-ish noise (Paul Kellet's economy filter), same as the Python version
+  const b = [0.049922035, -0.095993537, 0.050612699, -0.004408786], a = [1, -2.494956002, 2.017265875, -0.5221894];
+  for (let ch = 0; ch < 2; ch++) {
+    const d = pink.getChannelData(ch); let x1 = 0, x2 = 0, x3 = 0, y1 = 0, y2 = 0, y3 = 0, peak = 0;
+    for (let i = 0; i < n; i++) {
+      const x = Math.random() * 2 - 1;
+      const y = b[0] * x + b[1] * x1 + b[2] * x2 + b[3] * x3 - a[1] * y1 - a[2] * y2 - a[3] * y3;
+      x3 = x2; x2 = x1; x1 = x; y3 = y2; y2 = y1; y1 = y;
+      d[i] = y; if (Math.abs(y) > peak) peak = Math.abs(y);
+    }
+    if (peak > 0) for (let i = 0; i < n; i++) d[i] /= peak;
+  }
+  const swell = ctx.createGain(); swell.gain.value = 0.75;
+  const lfo = ctx.createOscillator(), lfoDepth = ctx.createGain();
+  lfo.frequency.value = 0.07; lfoDepth.gain.value = 0.25; lfo.connect(lfoDepth).connect(swell.gain); lfo.start();
+  play(ctx, pink).connect(band(ctx, 300, 7000)).connect(swell).connect(ctx.destination);
+  const dripGain = ctx.createGain(); dripGain.gain.value = 0.3;
+  play(ctx, impulses(ctx, n, 40, 0.2, 0.8, false, false)).connect(band(ctx, 2000, 8000)).connect(dripGain).connect(ctx.destination);
+  const r = await ctx.startRendering();
+  return normalise([r.getChannelData(0), r.getChannelData(1)]);
+}
+
+/* ---------- Encoding ---------- */
+function toInt16(f) { const out = new Int16Array(f.length); for (let i = 0; i < f.length; i++) { const s = Math.max(-1, Math.min(1, f[i])); out[i] = s < 0 ? s * 0x8000 : s * 0x7fff; } return out; }
+
+async function encodeMp3(L, R) {
+  if (!window.lamejs) return null;
+  const enc = new lamejs.Mp3Encoder(2, SR, 192), l = toInt16(L), r = toInt16(R), block = 1152, parts = [];
+  for (let i = 0; i < l.length; i += block) {
+    const out = enc.encodeBuffer(l.subarray(i, i + block), r.subarray(i, i + block));
+    if (out.length) parts.push(new Uint8Array(out));
+    if (i % (block * 400) === 0) { setStatus(`Saving as MP3… ${Math.round((i / l.length) * 100)}%`); await tick(); }
+  }
+  const end = enc.flush(); if (end.length) parts.push(new Uint8Array(end));
+  return new Blob(parts, { type: "audio/mpeg" });
+}
+
+function encodeWav(L, R) {
+  const n = L.length, view = new DataView(new ArrayBuffer(44 + n * 4));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, "RIFF"); view.setUint32(4, 36 + n * 4, true); str(8, "WAVE"); str(12, "fmt ");
+  view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 2, true);
+  view.setUint32(24, SR, true); view.setUint32(28, SR * 4, true); view.setUint16(32, 4, true); view.setUint16(34, 16, true);
+  str(36, "data"); view.setUint32(40, n * 4, true);
+  const l = toInt16(L), r = toInt16(R);
+  for (let i = 0, o = 44; i < n; i++, o += 4) { view.setInt16(o, l[i], true); view.setInt16(o + 2, r[i], true); }
+  return new Blob([view], { type: "audio/wav" });
+}
+
+/* ---------- Main ---------- */
+$("go").addEventListener("click", async () => {
+  if (!song) { setStatus("Choose a song first: drop it on the cassette or click it.", true); return; }
+  const p = settings(), stem = song.file.name.replace(/\.[^.]+$/, ""), tag = mood();
+  $("go").disabled = true; cassette.classList.add("busy"); $("result").classList.remove("show");
+  try {
+    setStatus("Slowing it down and adding reverb…"); await tick();
+    const music = await renderMusic(song.buffer, p);
+    const n = music[0].length, musicPeak = peakOf(music) || 1;
+    if (p.vinyl > 0) {
+      setStatus("Adding vinyl crackle…"); await tick();
+      const v = await renderVinyl(n), k = p.vinyl * musicPeak * 0.5;
+      for (let ch = 0; ch < 2; ch++) for (let i = 0; i < n; i++) music[ch][i] += v[ch][i] * k;
+    }
+    if (p.rain > 0) {
+      setStatus("Adding rain…"); await tick();
+      const rn = await renderRain(n), k = p.rain * musicPeak * 0.5;
+      for (let ch = 0; ch < 2; ch++) for (let i = 0; i < n; i++) music[ch][i] += rn[ch][i] * k;
+    }
+    normalise(music, Math.pow(10, -1 / 20));
+    const mp3 = await encodeMp3(music[0], music[1]);
+    const wav = encodeWav(music[0], music[1]);
+    urls.forEach(URL.revokeObjectURL);
+    const beforeUrl = URL.createObjectURL(song.file), wavUrl = URL.createObjectURL(wav);
+    const afterUrl = mp3 ? URL.createObjectURL(mp3) : wavUrl;
+    urls = [beforeUrl, wavUrl, afterUrl];
+    $("before").src = beforeUrl; $("after").src = afterUrl;
+    $("beforeLen").textContent = fmt(song.buffer.duration);
+    $("afterLen").textContent = fmt(n / SR);
+    $("dlMp3").hidden = !mp3;
+    if (mp3) { $("dlMp3").href = afterUrl; $("dlMp3").download = `${stem}_${tag}.mp3`; }
+    $("dlWav").href = wavUrl; $("dlWav").download = `${stem}_${tag}.wav`;
+    $("result").classList.add("show");
+    setStatus(`Done. ${fmt(song.buffer.duration)} became ${fmt(n / SR)}.`);
+    $("result").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+  } catch (err) {
+    console.error(err);
+    setStatus("Something went wrong while processing. Try a shorter song or reload the page.", true);
+  } finally {
+    $("go").disabled = false; cassette.classList.remove("busy");
+  }
+});
+</script>
+</body>
+</html>

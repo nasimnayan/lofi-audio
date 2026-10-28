@@ -4,6 +4,8 @@ Turn any song into a **Slowed + Reverb**, **Lofi** or **Dreamy** version just by
 asking Claude Code. You can add vinyl crackle, soft rain or your own ambience loop.
 Everything runs on your own computer. No uploads and no accounts.
 
+**[▶ Try it online](https://nasimnayan.github.io/lofi-audio/)**: no install needed. It runs in your browser, so your song never leaves your device.
+
 ## Hear the difference
 
 The same 30-second section, before and after:
